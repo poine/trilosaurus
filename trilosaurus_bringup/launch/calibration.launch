@@ -1,0 +1,16 @@
+<launch>
+  <arg name="camera_name" default="camera1"/>
+
+  <!-- <node type="test_node.py" pkg="trilosaurus_bringup" name="vision_test" output="screen"> -->
+  <!--   <param name="camera" value="raspicam_node"/> -->
+  <!-- </node> -->
+  
+  <!-- <node type="calibrate_extr_node.py" pkg="common_vision" name="calibration" output="screen"> -->
+  <!--   <param name="camera" value="$(arg camera_name)"/> -->
+  <!-- </node> -->
+
+  <node type="bird_eye_node.py" pkg="common_vision" name="calibration" output="screen">
+    <param name="camera" value="$(arg camera_name)"/>
+  </node>
+
+</launch>

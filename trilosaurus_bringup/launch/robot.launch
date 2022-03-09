@@ -1,0 +1,47 @@
+<launch>
+  <arg name="robot_name" default="trilosaurus" />
+  
+  <arg name="start_hardware" default="true" />
+  <arg name="start_camera" default="true" />
+  <arg name="start_lane" default="true" />
+  <arg name="start_calibration" default="false" />
+
+  <!-- ****** Starts hardware ****** -->
+  <group if="$(arg start_hardware)">
+    <node name="hardware_node" pkg="trilosaurus_bringup" type="robot_manager_ros.py"/>
+  </group>
+  
+  <!-- ****** Starts camera ****** -->
+  <group if="$(arg start_camera)">
+    <arg name="ref_to_camo_t" default="0 0 0"/>
+    <arg name="ref_to_camo_q" default="1 0 0 0"/>
+
+    <include file="$(find trilosaurus_bringup)/launch/camera.launch">
+      <arg name="enable_raw" value="true"/>
+    </include>
+
+    </group>
+
+    <!-- ****** Starts lane detector ****** -->
+    <group if="$(arg start_lane)">
+      <node name="lane_detector" pkg="common_vision" type="lane_detector_node2.py"  output="screen">
+	<param name="camera" value="camera1"/>
+	<param name="robot_name" value="trilopi"/>
+	<param name="ref_frame" value="base_link_footprint"/>
+      </node>
+    </group>
+
+  
+    <!-- ****** Starts calibration ****** -->
+    <group if="$(arg start_calibration)">
+      <include file="$(find trilosaurus_bringup)/launch/calibration.launch">
+      </include>
+    </group>
+
+
+
+    
+    
+</launch>
+
+

@@ -1,0 +1,3 @@
+# extrinsics (ref to camera optical frame transform)
+ref_to_camo_t: -0.001958037197,0.077735981561,-0.027257454958
+ref_to_camo_q: -0.576268100057,0.578607739265,-0.412572033961,-0.403624178800
