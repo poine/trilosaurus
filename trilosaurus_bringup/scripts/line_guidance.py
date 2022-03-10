@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# ./work/trilosaurus/trilosaurus_bringup/scripts/line_guidance.py
+# 
 import os, sys
 import math, numpy as np
 import roslib, rospy, rospkg, rostopic, dynamic_reconfigure.server
@@ -38,7 +41,7 @@ class Node(cv_rpu.PeriodicNode):
         tdg_dir = rospkg.RosPack().get_path('two_d_guidance')
         path_name = rospy.get_param('~path_name', 'demo_z/track_trr_real_1.npz')
         fname = os.path.join(tdg_dir, 'paths/{}'.format(path_name))
-        self.guidance = tdg_guid.Guidance(lookahead=lookahead, path_fname=fname, vel_sp=0.1)
+        self.guidance = tdg_guid.Guidance(lookahead=lookahead, path_fname=fname, vel_sp=0.02)
         # dynamic reconfigurable parameters
         self.cfg_srv = dynamic_reconfigure.server.Server(two_d_guidance.cfg.trr_guidanceConfig, self.dyn_cfg_callback)
         
@@ -49,15 +52,15 @@ class Node(cv_rpu.PeriodicNode):
         
         self.lane_model_sub = cv_rpu.LaneModelSubscriber('/vision/lane/model', timeout=0.15)
 
-        self.guidance.set_mode(2)
-        self.guidance.lookaheads[0].d = 0.2
+        #self.guidance.set_mode(2)
+        self.guidance.lookaheads[0].d = 0.13
         
     def dyn_cfg_callback(self, config, level):
         rospy.loginfo(" Reconfigure Request: mode: {guidance_mode}, lookahead: {lookahead_dist}, vel_setpoint: {vel_sp}".format(**config))
         self.guidance.set_mode(config['guidance_mode'])
         #self.guidance.lookaheads[0].set_dist(config['lookahead_dist'])
         #self.guidance.lookahead_mode = config['lookahead_mode']
-        self.guidance.vel_ctl.sp = config['vel_sp']
+        #self.guidance.vel_ctl.sp = config['vel_sp']
         return config
 
         
@@ -77,7 +80,7 @@ class Node(cv_rpu.PeriodicNode):
             #self.guidance.lin_sp = 0.#5
             #self.guidance.ang_sp = 0.#5
             #print(self.guidance.lin_sp, self.guidance.ang_sp)
-            #self.publisher.publish_cmd(self.guidance.lin_sp, self.guidance.ang_sp)
+            self.publisher.publish_cmd(self.guidance.lin_sp, self.guidance.ang_sp)
             pass
         self.publisher.publish_status(self.guidance)
         

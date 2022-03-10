@@ -143,15 +143,17 @@ class RobotManager:
             self.tbot.disable_motors()
         if self.joystick.is_connected() or auto_cmd is not None:
             if auto_cmd is None:
-                sp_lvel, sp_rvel = -self.joystick.read_axis("LY"), self.joystick.read_axis("RX")
+                sp_lvel, sp_rvel = -0.04*self.joystick.read_axis("LY"), -0.8*self.joystick.read_axis("RX")
             else:
                 sp_lvel, sp_rvel = auto_cmd
-            #print(sp_lvel, sp_rvel)
-            KL, KR = 0.8, 0.7
-            self.tbot.set_left_speed(KL*sp_lvel  + KR*sp_rvel)
-            self.tbot.set_right_speed(KL*sp_lvel - KR*sp_rvel)
+            #KL, KR = 17.5, -0.8
+            KL, KR = 17.5, -1.3
+            lpwm, rpwm = KL*sp_lvel + KR*sp_rvel, KL*sp_lvel - KR*sp_rvel
+            lpwm, rpwm = np.clip([lpwm, rpwm], -1, 1)
+            #print(f'{sp_lvel} m/s, {np.rad2deg(sp_rvel):.1f} deg/s -> {lpwm} {rpwm}')
+            self.tbot.set_motor_speeds(lpwm, rpwm)
         else:
-            pass
+            self.tbot.set_motor_speeds(0, 0)
             #pdb.set_trace()
         self.update_sys(loop_cnt)
         self.tbot.loop()

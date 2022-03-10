@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# ./work/trilosaurus/trilosaurus_bringup/scripts/line_guidance_display.py _camera:=camera1 camera1/image_raw/compressed:=camera1/image/compressed
+
 import os, sys
 import math, numpy as np
 import roslib, rospy, rospkg, rostopic, dynamic_reconfigure.server
@@ -43,7 +46,10 @@ class ImgPublisher(cv_rpu.DebugImgPublisher):
         carrot_lfp = np.array([[msg.lookahead_dist, model.lane_model.get_y(msg.lookahead_dist), 0]])
         carrot_img = model.cam.project(carrot_lfp).astype(int).squeeze()
         radius, color, thickness = 3, (255,0,0), 2
-        image = cv2.circle(img_bgr, tuple(carrot_img), radius, color, thickness)
+        try:
+            image = cv2.circle(img_bgr, tuple(carrot_img), radius, color, thickness)
+        except OverflowError:
+            pass
 
 class Node(cv_rpu.PeriodicNode):
 

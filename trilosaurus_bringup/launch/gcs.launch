@@ -1,15 +1,17 @@
 <launch>
   <arg name="robot_name" default="trilosaurus" />
 
-  <arg name="start_guidance_disply" default="true" />
+  <arg name="start_guidance_display" default="true" />
 
   <group if="$(arg start_guidance_display)">
-      <node name="guidance" pkg="trilosaurus_bringup" type="line_guidance_display.py">
-     	<param name="camera" value="camera1"/>
-	<param name="robot_name" value="trilopi"/>
-	<param name="ref_frame" value="base_link_footprint"/>
-      </node>
-    </group>
+    <node name="guidance_display" pkg="trilosaurus_bringup" type="line_guidance_display.py">
+      <param name="camera" value="camera1"/>
+      <param name="robot_name" value="trilopi"/>
+      <param name="ref_frame" value="base_link_footprint"/>
+
+      <remap from="/camera1/image_raw/compressed" to="/camera1/image/compressed"/>
+    </node>
+  </group>		
   
 
   
