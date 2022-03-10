@@ -3,7 +3,8 @@
   
   <arg name="start_hardware" default="true" />
   <arg name="start_camera" default="true" />
-  <arg name="start_lane" default="true" />
+  <arg name="start_lane_detector" default="true" />
+  <arg name="start_guidance" default="true" />
   <arg name="start_calibration" default="false" />
 
   <!-- ****** Starts hardware ****** -->
@@ -23,7 +24,7 @@
     </group>
 
     <!-- ****** Starts lane detector ****** -->
-    <group if="$(arg start_lane)">
+    <group if="$(arg start_lane_detector)">
       <node name="lane_detector" pkg="common_vision" type="lane_detector_node2.py"  output="screen">
 	<param name="camera" value="camera1"/>
 	<param name="robot_name" value="trilopi"/>
@@ -31,7 +32,15 @@
       </node>
     </group>
 
-  
+    <!-- ****** starts Guidance ****** -->
+    <group if="$(arg start_guidance)">
+      <node name="guidance" pkg="trilosaurus_bringup" type="line_guidance.py">
+     	<param name="camera" value="camera1"/>
+	<param name="robot_name" value="trilopi"/>
+	<param name="ref_frame" value="base_link_footprint"/>
+      </node>
+    </group>
+    
     <!-- ****** Starts calibration ****** -->
     <group if="$(arg start_calibration)">
       <include file="$(find trilosaurus_bringup)/launch/calibration.launch">
