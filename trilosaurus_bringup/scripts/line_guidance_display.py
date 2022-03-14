@@ -62,7 +62,8 @@ class Node(cv_rpu.PeriodicNode):
         rospy.loginfo(' using ref_frame: {}'.format(ref_frame))
         self.cam = cv_rpu.retrieve_cam(cam_name, fetch_extrinsics=True, world=ref_frame)
         #FIXME
-        extr_cam_calib_path = '/home/ubuntu/work/robot_data/trilopi/camera1_extrinsics.yaml'
+        pkg_dir = rospkg.RosPack().get_path('trilosaurus_bringup')
+        extr_cam_calib_path = os.path.join(pkg_dir, 'cfg/camera1_extrinsics.yaml')
         self.cam.load_extrinsics(extr_cam_calib_path)
         
         self.lane_model = cv_u.LaneModel()

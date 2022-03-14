@@ -41,7 +41,7 @@ class Node(cv_rpu.PeriodicNode):
         tdg_dir = rospkg.RosPack().get_path('two_d_guidance')
         path_name = rospy.get_param('~path_name', 'demo_z/track_trr_real_1.npz')
         fname = os.path.join(tdg_dir, 'paths/{}'.format(path_name))
-        self.guidance = tdg_guid.Guidance(lookahead=lookahead, path_fname=fname, vel_sp=0.02)
+        self.guidance = tdg_guid.Guidance(lookahead=lookahead, path_fname=fname, vel_sp=0.025)
         # dynamic reconfigurable parameters
         self.cfg_srv = dynamic_reconfigure.server.Server(two_d_guidance.cfg.trr_guidanceConfig, self.dyn_cfg_callback)
         
@@ -56,11 +56,18 @@ class Node(cv_rpu.PeriodicNode):
         self.guidance.lookaheads[0].d = 0.13
         
     def dyn_cfg_callback(self, config, level):
+        rospy.loginfo(f" Reconfigure Request: level: {level}")
         rospy.loginfo(" Reconfigure Request: mode: {guidance_mode}, lookahead: {lookahead_dist}, vel_setpoint: {vel_sp}".format(**config))
-        self.guidance.set_mode(config['guidance_mode'])
-        #self.guidance.lookaheads[0].set_dist(config['lookahead_dist'])
-        #self.guidance.lookahead_mode = config['lookahead_mode']
-        #self.guidance.vel_ctl.sp = config['vel_sp']
+        if level == -1:
+            config['guidance_mode'] = self.guidance.mode
+            config['lookahead_dist'] = self.guidance.lookaheads[0].d
+            config['vel_setpoint'] = self.guidance.vel_ctl.sp
+            print(f"defaults: mode {config['guidance_mode']} lookahead {config['lookahead_dist']} vel {config['vel_setpoint']}")
+        else:
+            self.guidance.set_mode(config['guidance_mode'])
+            #self.guidance.lookaheads[0].set_dist(config['lookahead_dist'])
+            #self.guidance.lookahead_mode = config['lookahead_mode']
+            #self.guidance.vel_ctl.sp = config['vel_sp']
         return config
 
         
@@ -75,13 +82,13 @@ class Node(cv_rpu.PeriodicNode):
             rospy.loginfo_throttle(1., 'guidance: (lane) RXMsgTimeoutException')
             return
         _s, _is, _v, _ds, _df = 0, 0, 0.5, 0., 0.
+        _v = 0. # est_vel
         self.guidance.compute(_s, _is, _v, expl_noise=0.)
         if self.guidance.mode != tdg_guid.Guidance.mode_idle:
             #self.guidance.lin_sp = 0.#5
             #self.guidance.ang_sp = 0.#5
             #print(self.guidance.lin_sp, self.guidance.ang_sp)
             self.publisher.publish_cmd(self.guidance.lin_sp, self.guidance.ang_sp)
-            pass
         self.publisher.publish_status(self.guidance)
         
     

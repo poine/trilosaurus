@@ -85,7 +85,7 @@ class RobotManager:
     def __init__(self):
         self.tbot = MyTrilobot()
         self.joystick = remote_control.create_mocute_controller(stick_deadzone_percent=0.1)
-        self.screen = Screen()
+        #self.screen = Screen()
         
         
     def start(self):
@@ -143,7 +143,7 @@ class RobotManager:
             self.tbot.disable_motors()
         if self.joystick.is_connected() or auto_cmd is not None:
             if auto_cmd is None:
-                sp_lvel, sp_rvel = -0.04*self.joystick.read_axis("LY"), -0.8*self.joystick.read_axis("RX")
+                sp_lvel, sp_rvel = -0.05*self.joystick.read_axis("LY"), -0.7*self.joystick.read_axis("RX")
             else:
                 sp_lvel, sp_rvel = auto_cmd
             #KL, KR = 17.5, -0.8
@@ -157,13 +157,13 @@ class RobotManager:
             #pdb.set_trace()
         self.update_sys(loop_cnt)
         self.tbot.loop()
-        if self.tbot.but_states[0] and self.tbot.but_changed[0]:
-            self.screen.next_page()
-        elif self.tbot.but_states[1] and self.tbot.but_changed[1]:
-            self.screen.prev_page()
+        #if self.tbot.but_states[0] and self.tbot.but_changed[0]:
+        #    self.screen.next_page()
+        #elif self.tbot.but_states[1] and self.tbot.but_changed[1]:
+        #    self.screen.prev_page()
                 
-        if loop_cnt%5==0:
-            self.screen.display(self)
+        #if loop_cnt%5==0:
+        #    self.screen.display(self)
         
 
 
