@@ -38,6 +38,8 @@
      	<param name="camera" value="camera1"/>
 	<param name="robot_name" value="trilopi"/>
 	<param name="ref_frame" value="base_link_footprint"/>
+	<param name="lookahead_dist" value="0.13"/>
+	<param name="vel_sp" value="0.03"/>
       </node>
     </group>
     

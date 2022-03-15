@@ -11,6 +11,7 @@ import cv2
 
 import common_vision.utils as cv_u
 import common_vision.rospy_utils as cv_rpu
+import common_vision.bird_eye as cv_be
 
 import two_d_guidance.trr.rospy_utils as trr_rpu
 
@@ -41,7 +42,7 @@ class ImgPublisher(cv_rpu.DebugImgPublisher):
         #self.lane_model.
         model.lane_model.coefs = msg.poly
         #if self.lane_model.is_valid() and self.display_mode not in [Contour1Pipeline.show_be]:
-        x_min, x_max = 0.11, 0.3#model.lane_model.x_min, model.lane_model.x_max
+        x_min, x_max = model.lane_model.x_min, model.lane_model.x_max
         model.lane_model.draw_on_cam_img(img_bgr, model.cam, l0=x_min, l1=x_max, color=(0,128,0))
         carrot_lfp = np.array([[msg.lookahead_dist, model.lane_model.get_y(msg.lookahead_dist), 0]])
         carrot_img = model.cam.project(carrot_lfp).astype(int).squeeze()
@@ -51,6 +52,40 @@ class ImgPublisher(cv_rpu.DebugImgPublisher):
         except OverflowError:
             pass
 
+class BeImgPublisher(cv_rpu.DebugImgPublisher):
+    def __init__(self, img_topic, cam, cam_name):
+         cv_rpu.DebugImgPublisher.__init__(self, cam_name, img_topic)
+         self.bird_eye = cv_be.BirdEye(cam, cv_be.BeParamTrilopi(), cache_filename='/tmp/be_cfg.npz', force_recompute=False)
+
+
+    def _draw(self, img_bgr, model, data):
+        img_unwarped = self.bird_eye.undist_unwarp_img(self.img_bgr, model.cam)
+        #img_unwarped = cv2.bitwise_and(img_unwarped, img_unwarped, mask=self.bird_eye.unwarped_img_mask2)
+        chroma_blue = (187, 71, 0)
+        chroma_green = (64, 177, 0)
+        img_unwarped[self.bird_eye.unwarped_img_mask2==0] = chroma_blue
+
+        y0=20; font_color=(128,0,255)
+        f, h1, h2, c, w = cv2.FONT_HERSHEY_SIMPLEX, 1.25, 0.9, font_color, 2
+        cv2.putText(img_unwarped, 'Guidance:', (y0, 40), f, h1, c, w)
+        str_of_guid_mode = ['idle', 'stopped', 'driving']
+        cv2.putText(img_unwarped, f'mode: {str_of_guid_mode[model.guidance_mode]:s}', (20, 90), f, h2, c, w)
+ 
+        xs = np.linspace(model.lane_model.x_min, model.lane_model.x_max, 20)
+        ys = model.lane_model.get_y(xs)
+        pts_world = np.array([[x, y, 0] for x, y in zip(xs, ys)])
+        pts_img = self.bird_eye.lfp_to_unwarped(model.cam, pts_world)
+        color=(0,128,0)
+        for i in range(len(pts_img)-1):
+            try:
+                cv2.line(img_unwarped, tuple(pts_img[i].squeeze().astype(int)), tuple(pts_img[i+1].squeeze().astype(int)), color, 4)
+            except OverflowError:
+                pass
+        self.img_bgr = img_unwarped
+        
+        
+        
+         
 class Node(cv_rpu.PeriodicNode):
 
     def __init__(self):
@@ -61,13 +96,16 @@ class Node(cv_rpu.PeriodicNode):
         ref_frame = rospy.get_param('~ref_frame', prefix(robot_name, 'base_link_footprint'))
         rospy.loginfo(' using ref_frame: {}'.format(ref_frame))
         self.cam = cv_rpu.retrieve_cam(cam_name, fetch_extrinsics=True, world=ref_frame)
-        #FIXME
+        self.cam.set_undistortion_param(alpha=1)
+
+        #FIXME, bug in static transform publisher
         pkg_dir = rospkg.RosPack().get_path('trilosaurus_bringup')
         extr_cam_calib_path = os.path.join(pkg_dir, 'cfg/camera1_extrinsics.yaml')
         self.cam.load_extrinsics(extr_cam_calib_path)
-        
+
         self.lane_model = cv_u.LaneModel()
         self.img_pub = ImgPublisher("/guidance/image_debug", cam_name)
+        self.img_be_pub = BeImgPublisher("/guidance/image_debug_be", self.cam, cam_name)
         self.guid_stat_sub = trr_rpu.GuidanceStatusSubscriber(topic='/guidance/status', timeout=0.5)
         self.lane_model = cv_u.LaneModel()
         #self.lane_model_sub = cv_rpu.LaneModelSubscriber('/vision/lane/model', timeout=0.15)
@@ -76,7 +114,16 @@ class Node(cv_rpu.PeriodicNode):
 
     def periodic(self):
         try:
-            self.img_pub.publish(self, None)
+            msg = self.guid_stat_sub.get()
+            self.lane_model.coefs = msg.poly
+            self.lane_model.x_min = msg.x_min
+            self.lane_model.x_max = msg.x_max
+            self.guidance_mode = msg.guidance_mode
+            self.guidance_lookahead_dit = msg.lookahead_dist
+            self.carrot = [msg.carrot_x, msg.carrot_y]
+            self.lin_sp, self.ang_sp = msg.lin_sp, msg.ang_sp
+            #self.img_pub.publish(self, None)
+            self.img_be_pub.publish(self, None)
         except trr_rpu.NoRXMsgException :
             print('guidance display im: no Status received from guidance')
         except trr_rpu.RXMsgTimeoutException :
