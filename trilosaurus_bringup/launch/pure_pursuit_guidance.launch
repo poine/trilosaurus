@@ -1,0 +1,31 @@
+<launch>
+  <!-- <arg name="camera_name" default="camera1"/> -->
+
+  <arg name="start_filter" default="false"/>
+  
+  <arg name="ekf_config" default="ekf_none"/>
+  <arg name="robot_name" default="rosmip_1"/>
+  <arg name="robot_marker" default="1"/>
+  
+  <!-- ****** Starts Filter ****** -->
+  <group if="$(arg start_filter)">
+    <node pkg="robot_localization" type="ekf_localization_node" name="$(arg robot_name)_ekf_localization" clear_params="true" output="screen">
+      <rosparam command="load" file="$(find rosmip_navigation)/params/$(arg ekf_config).yaml" />
+      <rosparam param="base_link_frame" subst_value="True">$(arg robot_name)/base_link</rosparam>
+      <rosparam param="odom_frame" subst_value="True">$(arg robot_name)/odom</rosparam>
+      <rosparam param="odom0" subst_value="True">$(arg robot_name)/rosmip_balance_controller/odom</rosparam>
+      <rosparam param="pose0" subst_value="True">/smocap/marker_$(arg robot_marker)</rosparam>
+      <remap from="odometry/filtered" to="$(arg robot_name)/ekf/pose"/>
+    </node>
+  </group>
+
+  
+  <node type="pp_guidance_node.py" pkg="two_d_guidance" name="pure_pursuit_guidance" output="screen">
+    <param name="twist_cmd_topic" value="/cmd_vel"/>
+    <param name="path_filename" value="/home/ubuntu/work/two_d_guidance/paths/roboteck/square_1.npz" />
+    <param name="robot_pose_topic" value="/smocap/est_marker" />
+    <param name="vel_setpoint" value="0.025" />
+    <param name="look_ahead" value="0.13" />
+  </node>
+
+</launch>
