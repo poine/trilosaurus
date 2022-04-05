@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="zumosaurus">
+
+  <!-- Use this if parameters are set from the launch file, otherwise delete -->
+  <xacro:arg name="use_fake_hardware" default="false" />
+  <xacro:arg name="fake_sensor_commands" default="false" />
+  <xacro:arg name="prefix" default="" />
+
+  <xacro:include filename="$(find trilosaurus_description)/urdf/trilosaurus_description.urdf.xacro" />
+  <!-- Import Rviz colors -->
+  <xacro:include filename="$(find trilosaurus_description)/gazebo/trilosaurus.materials.xacro" />
+  <!-- Import diffbot ros2_control description -->
+  <xacro:include filename="$(find trilosaurus_description)/ros2_control/trilosaurus.ros2_control.xacro" />
+
+  <!-- set prefix if multiple robots are used -->
+  <xacro:trilosaurus prefix="$(arg prefix)" />
+
+  <xacro:trilosaurus_ros2_control
+    name="TriloSaurus" 
+    prefix="$(arg prefix)" />
+
+</robot>
