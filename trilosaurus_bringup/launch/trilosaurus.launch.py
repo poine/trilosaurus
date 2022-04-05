@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, TextSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-launch_viz = False
+from ament_index_python.packages import get_package_share_directory
 
+launch_viz = False
+launch_teleop = True
 
 def generate_launch_description():
     # Declare arguments
@@ -155,6 +158,36 @@ def generate_launch_description():
             on_exit=[robot_controller_spawner],
         )
     )
+
+    if launch_teleop:
+        joy_config = LaunchConfiguration('joy_config')
+        joy_dev = LaunchConfiguration('joy_dev')
+        joy_config_filepath = LaunchConfiguration('joy_config_filepath')
+        declared_arguments.append(DeclareLaunchArgument('joy_config', default_value='ps3'))
+        declared_arguments.append(DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0'))
+        # declared_arguments.append(DeclareLaunchArgument('joy_config_filepath', default_value=[
+        #     TextSubstitution(text=os.path.join(
+        #         get_package_share_directory('teleop_twist_joy'), 'config', '')),
+        #     joy_config, TextSubstitution(text='.config.yaml')]))
+        declared_arguments.append(
+            DeclareLaunchArgument('joy_config_filepath', default_value=PathJoinSubstitution([FindPackageShare('trilosaurus_bringup'), "config", "teleop_twist_joy_MOCUTE.config.yaml"])))
+        
+        joy_node = Node(
+            package='joy', executable='joy_node', name='joy_node',
+            parameters=[{
+                'dev': joy_dev,
+                'deadzone': 0.3,
+                'autorepeat_rate': 20.0,
+            }])
+        
+        teleop_node = Node(
+            package="teleop_twist_joy",
+            executable="teleop_node",
+            name='teleop_twist_joy_node',
+            parameters=[joy_config_filepath, {'require_enable_button':False}, {'axis_angular.yaw':2}],
+            remappings=[("/cmd_vel", "/trilosaurus_base_controller/cmd_vel_unstamped")]
+        )
+
     
     nodes =  [
         control_node,
@@ -163,5 +196,6 @@ def generate_launch_description():
         delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
     ]
     if launch_viz: nodes += [delay_rviz_after_joint_state_broadcaster_spawner]
+    if launch_teleop: nodes += [joy_node, teleop_node]
     return LaunchDescription(declared_arguments + nodes)
 

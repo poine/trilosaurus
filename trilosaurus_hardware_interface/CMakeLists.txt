@@ -16,12 +16,15 @@ add_library(
   trilosaurus_hardware_interface
   SHARED
   src/trilosaurus_robot_hardware.cpp
+  src/trilobot_driver.cpp
 )
 target_include_directories(
   trilosaurus_hardware_interface
   PUBLIC
   include
 )
+target_link_libraries(trilosaurus_hardware_interface 'wiringPi')
+
 ament_target_dependencies(
   trilosaurus_hardware_interface
   hardware_interface

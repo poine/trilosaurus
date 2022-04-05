@@ -20,18 +20,65 @@
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "rclcpp/rclcpp.hpp"
 
+#include "trilosaurus_hardware_interface/trilobot_driver.h"
+
+
 namespace trilosaurus_hardware_interface
 {
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+#include <linux/i2c-dev.h>
+#include <i2c/smbus.h>
+#include <wiringPi.h>
+  
+//   class MotorController {
+
+// // # Motor driver pins, via DRV8833PWP Dual H-Bridge
+// // MOTOR_EN_PIN = 26
+// // MOTOR_LEFT_P = 8
+// // MOTOR_LEFT_N = 11
+// // MOTOR_RIGHT_P = 10
+// // MOTOR_RIGHT_N = 9
+
+//   public:
+//       MotorController() {
+//       }
+//       bool init();
+//     private:
+//       double hw_start_sec_;
+//       int i2c_fd_;
+//   };
+
+//   bool MotorController::init() {
+//     char* filename = "/dev/i2c-1";
+//     i2c_fd_ = open(filename, O_RDWR);
+//     if (i2c_fd_ < 0) {
+//       return false;
+//     }
+//     return true;
+//   }
+  
+
+  
 CallbackReturn TrilosaurusRobotHardware::on_init(const hardware_interface::HardwareInfo & info)
 {
   if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS) {
     return CallbackReturn::ERROR;
   }
 
+  trilobot_driver_setup_hardware();
+  
   base_x_ = 0.0;
   base_y_ = 0.0;
   base_theta_ = 0.0;
-  
   hw_start_sec_ = std::stod(info_.hardware_parameters["example_param_hw_start_duration_sec"]);
   hw_stop_sec_ = std::stod(info_.hardware_parameters["example_param_hw_stop_duration_sec"]);
   
@@ -148,13 +195,16 @@ CallbackReturn TrilosaurusRobotHardware::on_deactivate(const rclcpp_lifecycle::S
 {
   RCLCPP_INFO(rclcpp::get_logger("TrilosaurusRobotHardware"), "Deactivating ...please wait...");
   // TODO(anyone): prepare the robot to stop receiving commands
+#if 1
+  trilobot_driver_motors_disable();
+#else
   for (auto i = 0; i < hw_stop_sec_; i++)
     {
       rclcpp::sleep_for(std::chrono::seconds(1));
       RCLCPP_INFO(
         rclcpp::get_logger("DiffBotSystemHardware"), "%.1f seconds left...", hw_stop_sec_ - i);
     }
-
+#endif
   RCLCPP_INFO(rclcpp::get_logger("TrilosaurusRobotHardware"), "Successfully deactivated!");
   return CallbackReturn::SUCCESS;
 }
@@ -179,8 +229,11 @@ hardware_interface::return_type TrilosaurusRobotHardware::read()
 
 hardware_interface::return_type TrilosaurusRobotHardware::write()
 {
-  // TODO(anyone): write robot's commands'
-
+  float K = 35.;
+  int8_t cmd_left = int(K*hw_commands_[0]);
+  int8_t cmd_right = int(K*hw_commands_[1]);
+  trilobot_driver_motors_set_speed(0, cmd_left);
+  trilobot_driver_motors_set_speed(1, cmd_right);
   return hardware_interface::return_type::OK;
 }
 
