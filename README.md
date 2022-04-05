@@ -1,2 +1,2 @@
 # trilosaurus
-trilopi following line (with ros)
+trilobot with raspberry pi and ros2
