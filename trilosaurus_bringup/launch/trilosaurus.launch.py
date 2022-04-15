@@ -63,7 +63,7 @@ def generate_launch_description():
             "prefix",
             default_value='""',
             description="Prefix of the joint names, useful for \
-        multi-robot setup. If changed than also joint names in the controllers' configuration \
+        multi-robot setup. If changed then also joint names in the controllers' configuration \
         have to be updated.",
         )
     )
@@ -176,7 +176,7 @@ def generate_launch_description():
             package='joy', executable='joy_node', name='joy_node',
             parameters=[{
                 'dev': joy_dev,
-                'deadzone': 0.3,
+                'deadzone': 0.15,
                 'autorepeat_rate': 20.0,
             }])
         
@@ -184,7 +184,7 @@ def generate_launch_description():
             package="teleop_twist_joy",
             executable="teleop_node",
             name='teleop_twist_joy_node',
-            parameters=[joy_config_filepath, {'require_enable_button':False}, {'axis_angular.yaw':2}],
+            parameters=[joy_config_filepath, {'require_enable_button':True}],
             remappings=[("/cmd_vel", "/trilosaurus_base_controller/cmd_vel_unstamped")]
         )
 

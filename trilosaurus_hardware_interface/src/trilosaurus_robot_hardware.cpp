@@ -35,37 +35,6 @@ namespace trilosaurus_hardware_interface
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <linux/i2c-dev.h>
-#include <i2c/smbus.h>
-#include <wiringPi.h>
-  
-//   class MotorController {
-
-// // # Motor driver pins, via DRV8833PWP Dual H-Bridge
-// // MOTOR_EN_PIN = 26
-// // MOTOR_LEFT_P = 8
-// // MOTOR_LEFT_N = 11
-// // MOTOR_RIGHT_P = 10
-// // MOTOR_RIGHT_N = 9
-
-//   public:
-//       MotorController() {
-//       }
-//       bool init();
-//     private:
-//       double hw_start_sec_;
-//       int i2c_fd_;
-//   };
-
-//   bool MotorController::init() {
-//     char* filename = "/dev/i2c-1";
-//     i2c_fd_ = open(filename, O_RDWR);
-//     if (i2c_fd_ < 0) {
-//       return false;
-//     }
-//     return true;
-//   }
-  
 
   
 CallbackReturn TrilosaurusRobotHardware::on_init(const hardware_interface::HardwareInfo & info)
@@ -74,7 +43,7 @@ CallbackReturn TrilosaurusRobotHardware::on_init(const hardware_interface::Hardw
     return CallbackReturn::ERROR;
   }
 
-  trilobot_driver_setup_hardware();
+  trilobot_driver_init();
   
   base_x_ = 0.0;
   base_y_ = 0.0;
@@ -167,12 +136,18 @@ std::vector<hardware_interface::CommandInterface> TrilosaurusRobotHardware::expo
 CallbackReturn TrilosaurusRobotHardware::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
   RCLCPP_INFO(rclcpp::get_logger("TrilosaurusRobotHardware"), "Activating ...please wait...");
+# if 0
   for (auto i = 0; i < hw_start_sec_; i++)
     {
       rclcpp::sleep_for(std::chrono::seconds(1));
       RCLCPP_INFO(
 	rclcpp::get_logger("DiffBotSystemHardware"), "%.1f seconds left...", hw_start_sec_ - i);
     }
+#else
+  motors_enable();
+  encoders_reset();
+#endif
+  
   // TODO(anyone): prepare the robot to receive commands
   // set some default values
   for (auto i = 0u; i < hw_positions_.size(); i++)
@@ -211,25 +186,24 @@ CallbackReturn TrilosaurusRobotHardware::on_deactivate(const rclcpp_lifecycle::S
 
 hardware_interface::return_type TrilosaurusRobotHardware::read()
 {
+  //#if 0
   current_timestamp = clock_.now();
   rclcpp::Duration dt = current_timestamp - last_timestamp_;  // Control period
   last_timestamp_ = current_timestamp;
-#if 0
-  // TODO: read robot states
-#else
-  for (uint i = 0; i < hw_commands_.size(); i++)
-  {
-    // Simulate wheels's movement: simply integrates
-    hw_positions_[i] = hw_positions_[1] + dt.seconds() * hw_commands_[i];
-    hw_velocities_[i] = hw_commands_[i];
-  }
-#endif
+  //#endif
+  // Read robot states
+  int32_t e1, e2;
+  encoders_read(&e1, &e2);
+#define click_to_rad 2*M_PI/(28*100)
+  hw_positions_[0] =  e1*click_to_rad; // left
+  hw_positions_[1] = -e2*click_to_rad; // right
+  // hw_velocities_[i] ??
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type TrilosaurusRobotHardware::write()
 {
-  float K = 35.;
+  float K = 9.;//35.;
   int8_t cmd_left = int(K*hw_commands_[0]);
   int8_t cmd_right = int(K*hw_commands_[1]);
   trilobot_driver_motors_set_speed(0, cmd_left);
