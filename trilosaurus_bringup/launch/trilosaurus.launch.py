@@ -1,4 +1,4 @@
-# Copyright 2022 poine (poinix@gmail.com)
+# Copyright 2023 poine (poinix@gmail.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,19 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution, TextSubstitution
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch.conditions import IfCondition
 
 from ament_index_python.packages import get_package_share_directory
 
 launch_viz = False
 launch_teleop = True
+#launch_camera = False
+#launch_lidar = True
 
 def generate_launch_description():
     # Declare arguments
@@ -75,6 +81,23 @@ def generate_launch_description():
         )
     )
 
+    # peripherals
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "start_camera",
+            default_value="False",
+            description="Start the camera.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "start_lidar",
+            default_value="False",
+            description="Start the lidar.",
+        )
+    )
+
+    nodes = []
     # Initialize Arguments
     runtime_config_package = LaunchConfiguration("runtime_config_package")
     controllers_file = LaunchConfiguration("controllers_file")
@@ -165,12 +188,13 @@ def generate_launch_description():
         joy_config_filepath = LaunchConfiguration('joy_config_filepath')
         declared_arguments.append(DeclareLaunchArgument('joy_config', default_value='ps3'))
         declared_arguments.append(DeclareLaunchArgument('joy_dev', default_value='/dev/input/js0'))
-        # declared_arguments.append(DeclareLaunchArgument('joy_config_filepath', default_value=[
-        #     TextSubstitution(text=os.path.join(
-        #         get_package_share_directory('teleop_twist_joy'), 'config', '')),
-        #     joy_config, TextSubstitution(text='.config.yaml')]))
-        declared_arguments.append(
-            DeclareLaunchArgument('joy_config_filepath', default_value=PathJoinSubstitution([FindPackageShare('trilosaurus_bringup'), "config", "teleop_twist_joy_MOCUTE.config.yaml"])))
+        if 0:
+            default_joy_config_path = [TextSubstitution(text=os.path.join(
+                    get_package_share_directory('teleop_twist_joy'), 'config', '')),
+                joy_config, TextSubstitution(text='.config.yaml')]
+        else:
+            default_joy_config_path = PathJoinSubstitution([FindPackageShare('trilosaurus_bringup'), "config", "teleop_twist_joy_MOCUTE.config.yaml"])
+        declared_arguments.append(DeclareLaunchArgument('joy_config_filepath', default_value=default_joy_config_path))
         
         joy_node = Node(
             package='joy', executable='joy_node', name='joy_node',
@@ -188,14 +212,39 @@ def generate_launch_description():
             remappings=[("/cmd_vel", "/trilosaurus_base_controller/cmd_vel_unstamped")]
         )
 
-    
-    nodes =  [
+    camera_node = Node(
+        package='camera_ros',
+        executable='camera_node',
+        name='camera_node',
+        parameters=[{
+            "camera":   0,
+            "width":  800,
+            "height": 600,
+            "role":   "viewfinder",
+            'format': 'BGR888',
+        }],
+        condition=IfCondition(LaunchConfiguration("start_camera")),  
+    )
+    nodes += [camera_node]
+        
+    lidar_arguments={'serial_port': '/dev/ttyS0', 'lidar_frame': 'laser_link'}
+    lidar_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([FindPackageShare("ldlidar"), '/launch', '/ldlidar.launch.py']),
+        launch_arguments=lidar_arguments.items(),
+        condition=IfCondition(LaunchConfiguration("start_lidar")),  
+    )
+    nodes += [lidar_node]
+        
+    nodes +=  [
         control_node,
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
         delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
     ]
-    if launch_viz: nodes += [delay_rviz_after_joint_state_broadcaster_spawner]
+    if launch_viz:    nodes += [delay_rviz_after_joint_state_broadcaster_spawner]
     if launch_teleop: nodes += [joy_node, teleop_node]
+    #if launch_camera: nodes += [camera_node]
+    #if launch_lidar:  nodes += [lidar_inc]
     return LaunchDescription(declared_arguments + nodes)
+        
 

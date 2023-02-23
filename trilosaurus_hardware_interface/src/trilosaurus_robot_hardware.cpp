@@ -184,7 +184,7 @@ CallbackReturn TrilosaurusRobotHardware::on_deactivate(const rclcpp_lifecycle::S
   return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::return_type TrilosaurusRobotHardware::read()
+hardware_interface::return_type TrilosaurusRobotHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   //#if 0
   current_timestamp = clock_.now();
@@ -201,11 +201,26 @@ hardware_interface::return_type TrilosaurusRobotHardware::read()
   return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type TrilosaurusRobotHardware::write()
+hardware_interface::return_type TrilosaurusRobotHardware::write(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
-  float K = 9.;//35.;
-  int8_t cmd_left = int(K*hw_commands_[0]);
-  int8_t cmd_right = int(K*hw_commands_[1]);
+#if 0
+  if (0) {
+    float K = 10.;//35.;
+    int8_t cmd_left = int(K*hw_commands_[0]);
+    int8_t cmd_right = int(K*hw_commands_[1]);
+  }
+  else {
+#else
+    double d = hw_commands_[0] - hw_commands_[1];
+    double s = hw_commands_[0] + hw_commands_[1];
+    double d1 = d * 12.;
+    double s1 = s * 9.;
+    double l = std::clamp((d1+s1)/2, -100., 100.);
+    double r = std::clamp((-d1+s1)/2, -100., 100.);
+    int8_t cmd_left = int(l); 
+    int8_t cmd_right = int(r); 
+#endif
+    //}
   trilobot_driver_motors_set_speed(0, cmd_left);
   trilobot_driver_motors_set_speed(1, cmd_right);
   return hardware_interface::return_type::OK;
