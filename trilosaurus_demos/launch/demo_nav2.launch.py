@@ -36,7 +36,7 @@ def generate_launch_description():
     nodes =  []
     declared_arguments = []
 
-    declared_arguments.append(     ## Optional Robot hardware
+    declared_arguments.append(     ## Optionaly starts robot hardware
         DeclareLaunchArgument(
             "start_robot",
             default_value="True",

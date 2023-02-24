@@ -71,6 +71,25 @@ def generate_launch_description():
         },
     )
     nodes += [cartographer_node]
+
+
+    # navigation
+    param_dir = "/home/poine/work/trilosaurus.ros2/trilosaurus_bringup/config/trilosaurus_nav2.yaml"
+    map_dir = "/home/poine/work/trilosaurus.ros2/trilosaurus_bringup/map/map.yaml"
+    use_sim_time = "false"
+    nav2_launch_file_dir = os.path.join(get_package_share_directory('nav2_bringup'), 'launch')
+    use_slam = 'True'
+    nav_nodes = [
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_launch_file_dir, '/bringup_launch_no_lm.py']),
+            launch_arguments={
+                'map': map_dir,
+                'use_sim_time': use_sim_time,
+                'params_file': param_dir, 'slam': use_slam}.items(),
+        )
+    ]
+    nodes += nav_nodes
+    
     
     return LaunchDescription(declared_arguments + nodes)
 

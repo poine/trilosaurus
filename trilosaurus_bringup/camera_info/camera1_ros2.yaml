@@ -4,14 +4,14 @@ camera_name: imx219__base_soc_i2c0mux_i2c_1_imx219_10_800x600
 camera_matrix:
   rows: 3
   cols: 3
-  data: [626.44629,   0.     , 400.86199,
-           0.     , 631.27505, 323.38971,
+  data: [623.33648,   0.     , 418.99225,
+           0.     , 625.96146, 310.62512,
            0.     ,   0.     ,   1.     ]
-distortion_model: rational_polynomial
+distortion_model: plumb_bob
 distortion_coefficients:
   rows: 1
-  cols: 8
-  data: [1.740560, 0.196087, 0.009168, -0.003860, 0.344313, 1.461207, 0.727567, 0.000000]
+  cols: 5
+  data: [0.128231, -0.193834, 0.006418, 0.006601, 0.000000]
 rectification_matrix:
   rows: 3
   cols: 3
@@ -21,7 +21,6 @@ rectification_matrix:
 projection_matrix:
   rows: 3
   cols: 4
-  data: [645.97119,   0.     , 397.23017,   0.     ,
-           0.     , 650.14581, 327.49462,   0.     ,
+  data: [634.90509,   0.     , 424.17873,   0.     ,
+           0.     , 640.85016, 313.48371,   0.     ,
            0.     ,   0.     ,   1.     ,   0.     ]
-
