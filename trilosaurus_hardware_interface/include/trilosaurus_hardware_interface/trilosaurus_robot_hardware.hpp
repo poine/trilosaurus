@@ -69,6 +69,7 @@ private:
   double hw_start_sec_;
   double hw_stop_sec_;
   double base_x_, base_y_, base_theta_;
+  double integ_l, integ_r;
   
   std::vector<double> hw_commands_;
   std::vector<double> hw_positions_;

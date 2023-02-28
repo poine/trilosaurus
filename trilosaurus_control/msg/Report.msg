@@ -1,0 +1,10 @@
+float64 meas_x
+float64 meas_z
+float64 sp_x
+float64 sp_z
+float64 meas_left
+float64 meas_right
+float64 sp_left
+float64 sp_right
+int8 cmd_left
+int8 cmd_right

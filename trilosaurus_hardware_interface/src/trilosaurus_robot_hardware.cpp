@@ -146,6 +146,7 @@ CallbackReturn TrilosaurusRobotHardware::on_activate(const rclcpp_lifecycle::Sta
 #else
   motors_enable();
   encoders_reset();
+  integ_l = 0.; integ_r=0.;
 #endif
   
   // TODO(anyone): prepare the robot to receive commands
@@ -184,43 +185,82 @@ CallbackReturn TrilosaurusRobotHardware::on_deactivate(const rclcpp_lifecycle::S
   return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::return_type TrilosaurusRobotHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
+hardware_interface::return_type TrilosaurusRobotHardware::read(__attribute__((unused)) const rclcpp::Time & time, const rclcpp::Duration & period)
 {
-  //#if 0
+  // Manage our schedule
   current_timestamp = clock_.now();
   rclcpp::Duration dt = current_timestamp - last_timestamp_;  // Control period
   last_timestamp_ = current_timestamp;
-  //#endif
   // Read robot states
   int32_t e1, e2;
   encoders_read(&e1, &e2);
 #define click_to_rad 2*M_PI/(28*100)
+  double old_pos0 = hw_positions_[0];
+  double old_pos1 = hw_positions_[1];
   hw_positions_[0] =  e1*click_to_rad; // left
   hw_positions_[1] = -e2*click_to_rad; // right
-  // hw_velocities_[i] ??
+  // maybe filter that?
+  double dts = double(period.seconds()) + 1e-9*double(period.nanoseconds());
+  hw_velocities_[0] = (hw_positions_[0] - old_pos0) / dts;
+  hw_velocities_[1] = (hw_positions_[1] - old_pos1) / dts;
   return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type TrilosaurusRobotHardware::write(const rclcpp::Time & time, const rclcpp::Duration & period)
+hardware_interface::return_type TrilosaurusRobotHardware::write(__attribute__((unused)) const rclcpp::Time & time,
+								__attribute__((unused)) const rclcpp::Duration & period)
 {
-#if 0
-  if (0) {
-    float K = 10.;//35.;
+#if 1   // direct
+  const double sat_cmd = 100.;
+  double l = std::clamp(hw_commands_[0], -sat_cmd, sat_cmd);
+  double r = std::clamp(hw_commands_[1], -sat_cmd, sat_cmd);
+  int8_t cmd_left = int8_t(l);
+  int8_t cmd_right = int8_t(r);
+#endif
+#if 0   // proportional open loop
+    float K = 10.;
     int8_t cmd_left = int(K*hw_commands_[0]);
     int8_t cmd_right = int(K*hw_commands_[1]);
-  }
-  else {
-#else
+#endif
+#if 0  // PID feedback
+    // Feedback
+    RCLCPP_DEBUG(rclcpp::get_logger("TrilosaurusRobotHardware"), "%f %f :  %f %f", hw_commands_[0], hw_commands_[1], hw_velocities_[0], hw_velocities_[1]);
+    double err_left = hw_velocities_[0] - hw_commands_[0];
+    double err_right = hw_velocities_[1] - hw_commands_[1];
+    double sat_err = 5.; // rad/s
+    err_left  = std::clamp(err_left,  -sat_err, sat_err);
+    err_right = std::clamp(err_right, -sat_err, sat_err);
+
+    double Kp = -4., Ki = -0.075; // -10
+    double sat_integ = -25/Ki; // rad/s
+    double dts = double(period.seconds()) + 1e-9*double(period.nanoseconds());
+    integ_l += err_left/dts; integ_r += err_right/dts;
+    integ_l = std::clamp(integ_l, -sat_integ, sat_integ);
+    integ_r = std::clamp(integ_r, -sat_integ, sat_integ);
+    if  (hw_commands_[0] < 0.05 && hw_commands_[0] > -0.05  ) {integ_l = 0;}
+    if  (hw_commands_[1] < 0.05 && hw_commands_[1] > -0.05  ) {integ_r = 0;}
+    
+    double cll = Kp*err_left  + Ki*integ_l;
+    double clr = Kp*err_right + Ki*integ_r;
+    RCLCPP_DEBUG(rclcpp::get_logger("TrilosaurusRobotHardware"), "cl: err % 8.2f % 8.2f : ierr %06.2f %06.2f cmd : %06.2f %06.2f", err_left, err_right, integ_l, integ_r, cll, clr);
+    // funky open loop (more drag in rotation than in translation?)
     double d = hw_commands_[0] - hw_commands_[1];
     double s = hw_commands_[0] + hw_commands_[1];
     double d1 = d * 12.;
     double s1 = s * 9.;
-    double l = std::clamp((d1+s1)/2, -100., 100.);
-    double r = std::clamp((-d1+s1)/2, -100., 100.);
+    double oll = ( d1+s1)/2;
+    double olr = (-d1+s1)/2;
+    double sat_cmd = 100.;
+    double l = std::clamp(oll+cll, -sat_cmd, sat_cmd);
+    double r = std::clamp(olr+clr, -sat_cmd, sat_cmd);
     int8_t cmd_left = int(l); 
     int8_t cmd_right = int(r); 
 #endif
-    //}
+    //RCLCPP_INFO(rclcpp::get_logger("TrilosaurusRobotHardware"), "cmd %d %d", cmd_left, cmd_right);
+#if 0
+    auto logger = rclcpp::get_logger("TrilosaurusRobotHardware");
+    auto clock = rclcpp::Clock(); //get_node()->get_clock();
+    RCLCPP_INFO_THROTTLE(logger, clock, 500, "cmd %d %d", cmd_left, cmd_right);
+#endif
   trilobot_driver_motors_set_speed(0, cmd_left);
   trilobot_driver_motors_set_speed(1, cmd_right);
   return hardware_interface::return_type::OK;
