@@ -99,7 +99,7 @@ controller_interface::return_type TrilosaurusDiffDriveController::update(const r
   registered_right_wheel_handles_[0].velocity.get().set_value(cmd_right);
   //RCLCPP_INFO_THROTTLE(logger, *clock, 1000, "lin/ang measured: %.02f %.02f  setpoint: %.02f %.02f",meas_linear, meas_angular, sp_linear, sp_angular);
   //RCLCPP_INFO_THROTTLE(logger, *clock, 1000, "left/right measured: %.02f %.02f  setpoint: %.02f %.02f", meas_left, meas_right, sp_left, sp_right);
-  RCLCPP_INFO_THROTTLE(logger, *clock, 500, "left/right err : %.02f %.02f  integ: %.0f %.0f (/ %.0f)  U:%.1f %.1f", err_left, err_right, integ_left, integ_right, sat_integ, cmd_left, cmd_right);
+  //RCLCPP_INFO_THROTTLE(logger, *clock, 500, "left/right err : %.02f %.02f  integ: %.0f %.0f (/ %.0f)  U:%.1f %.1f", err_left, err_right, integ_left, integ_right, sat_integ, cmd_left, cmd_right);
   //RCLCPP_INFO_THROTTLE(logger, *clock, 1000, "left/right output : %.02f %.02f cl %f %f U:%.1f %.1f", ul, ur, cloop_left, cloop_right, cmd_left, cmd_right);
   //RCLCPP_INFO_THROTTLE(logger, *clock, 500, "left/right cl %.1ff %.1f U:%.1f %.1f", cloop_left, cloop_right, cmd_left, cmd_right);
   //int8_t _cml = int8_t(cmd_left), _cmr = int8_t(cmd_right);
@@ -109,6 +109,11 @@ controller_interface::return_type TrilosaurusDiffDriveController::update(const r
   if (realtime_report_publisher_->trylock())
     {
       auto & _message = realtime_report_publisher_->msg_;
+      _message.header.stamp = get_node()->get_clock()->now();
+      _message.meas_x = meas_linear;
+      _message.meas_z = meas_angular;
+      _message.sp_x = sp_linear;
+      _message.sp_z = sp_angular;
       _message.meas_left = meas_left;
       _message.meas_right = meas_right;
       _message.sp_left = sp_left;

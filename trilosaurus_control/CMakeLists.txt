@@ -18,7 +18,7 @@ find_package(rclpy REQUIRED)
 find_package(rsl REQUIRED)
 find_package(pluginlib)
 find_package(rosidl_default_generators REQUIRED)
-
+find_package(std_msgs REQUIRED)
 # set(THIS_PACKAGE_INCLUDE_DEPENDS
 #     controller_interface
 #     geometry_msgs
@@ -37,7 +37,7 @@ find_package(rosidl_default_generators REQUIRED)
 # endforeach()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/Report.msg"
+  "msg/Report.msg"  DEPENDENCIES  builtin_interfaces std_msgs
 )
 
 
@@ -52,7 +52,7 @@ ament_target_dependencies(cpp_executable rclcpp diff_drive_controller rsl)
 add_library(trilosaurus_diff_drive_controller SHARED
   src/trilosaurus_diff_drive_controller.cpp
 )
-ament_target_dependencies(trilosaurus_diff_drive_controller rclcpp diff_drive_controller rsl)
+ament_target_dependencies(trilosaurus_diff_drive_controller rclcpp diff_drive_controller rsl std_msgs)
 rosidl_target_interfaces(trilosaurus_diff_drive_controller  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 #rosidl_get_typesupport_target(trilosaurus_diff_drive_controller  ${PROJECT_NAME} "rosidl_typesupport_cpp")
 #target_link_libraries(trilosaurus_diff_drive_controller rosidl)
@@ -114,6 +114,7 @@ if(BUILD_TESTING)
     tf2
     tf2_msgs
     rsl
+    std_msgs
     )
 
   ament_add_gmock(
@@ -125,6 +126,7 @@ if(BUILD_TESTING)
   ament_target_dependencies(test_load_controller
     controller_manager
     ros2_control_test_assets
+    std_msgs
   )
   
 endif()
