@@ -3,6 +3,8 @@ float64 meas_x
 float64 meas_z
 float64 sp_x
 float64 sp_z
+float64 enc_left
+float64 enc_right
 float64 meas_left
 float64 meas_right
 float64 sp_left
